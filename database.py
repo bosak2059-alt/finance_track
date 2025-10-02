@@ -105,7 +105,7 @@ class DatabaseManager:
     def check_password(self, password, hashed):
         return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-    def add_default_cacategories(self, user_id):
+    def add_default_categories(self, user_id):
         default_categories = ['Продукты', 'Транспорт', 'Жилье', 'Развлечение', 'Зарплата', 'Сбережения']
         with self._db_connection() as cursor:
             for category in default_categories:
