@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
-import _mysql_connector
+import mysql.connector
 import bcrypt
 
 class DatabaseManager:
@@ -11,15 +11,16 @@ class DatabaseManager:
             'password': password,
             'database': database,
         }
+        self._init_db()
 
     @contextmanager
     def _db_connection(self):
-        conn=_mysql_connector.connect(**self.db_config)
+        conn=mysql.connector.connect(**self.db_config)
         cursor=conn.cursor(dictionary=True)
         try:
             yield cursor
             conn.commit()
-        except _mysql_connector.MySQLError as e:
+        except mysql.connector.Error as e:
             print(f'MySQL error: {e}')
             conn.rollback()
         finally:
@@ -27,10 +28,11 @@ class DatabaseManager:
             conn.close()
 
     def _init_db(self):
-        conn=_mysql_connector.connect(
+        conn=mysql.connector.connect(
             host=self.db_config['host'],
             user=self.db_config['user'],
             password=self.db_config['password'],
+
         )
         cursor = conn.cursor()
         cursor.execute(f'CREATE DATABASE IF NOT EXISTS {self.db_config['database']};')
@@ -41,7 +43,7 @@ class DatabaseManager:
                 CREATE TABLE users (
                     id int auto_increment primary key,
                     username varchar(255) unique not null,
-                    password_hash text not null,   
+                    password_hash text not null
                 )
             """)
             cursor.execute("""
@@ -51,11 +53,11 @@ class DatabaseManager:
                     name varchar(255) not null,
                     target_amount decimal(10,2) not null,
                     created_at datetime not null,
-                    foreign key(user_id) references users(id) on delete cascade, 
+                    foreign key(user_id) references users(id) on delete cascade
                 )
             """)
             cursor.execute("""
-                CREATE TABLE opearations(
+                CREATE TABLE operations(
                     id int auto_increment primary key,
                     user_id int not null,
                     amount real not null,
@@ -63,23 +65,23 @@ class DatabaseManager:
                     category varchar(255) not null,
                     description text,
                     date datetime not null,
-                    goal_id int not null,
+                    goal_id int,
                     receipt_path text,
                     foreign key(user_id) references users(id) on delete cascade, 
-                    foreign key(goal_id) references goals(id) on delete set null, 
+                    foreign key(goal_id) references goals(id) on delete set null
                 )
             """)
-            cursor.categories("""
-                CREATE TABLE opearations(
+            cursor.execute("""
+                CREATE TABLE categories(
                     id int auto_increment primary key,
                     user_id int not null,
                     name varchar(255) not null,
-                    unique(user_id, name)    
-                    foreign key(user_id) references users(id) on delete cascade,                
+                    unique(user_id, name),    
+                    foreign key(user_id) references users(id) on delete cascade               
                 )
             """)
             conn.commit()
-        except _mysql_connector.MySQLError as e:
+        except mysql.connector.Error as e:
             print(f'MySQL error: {e}')
         finally:
             cursor.close()
@@ -94,12 +96,12 @@ class DatabaseManager:
                     (username, hashed_password.decode('utf-8'))
                 )
                 return cursor.lastrowid
-            except _mysql_connector.MySQLInterityError:
+            except mysql.connector.IntegrityError as e:
                 return None
 
     def get_user(self, username):
         with self._db_connection() as cursor:
-            cursor.execute("selelect id, username, password_hash from users where username = %s", (username,))
+            cursor.execute("select id, username, password_hash from users where username = %s", (username,))
             return cursor.fetchone()
 
     def check_password(self, password, hashed):

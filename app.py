@@ -13,7 +13,7 @@ def main(page:ft.Page):
         host='localhost',
         user='root',
         password='1234',
-        database='flet_projects'
+        database='sargis'
     )
 
     def route_change(route):

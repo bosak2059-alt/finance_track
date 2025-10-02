@@ -26,7 +26,7 @@ def LoginView(page:ft.Page, db:DatabaseManager):
         [
             ft.Column(
                 [
-                    ft.Text('Вход в систему', size=40, width=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    ft.Text('Вход в систему', size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                     username_field,
                     password_field,
                     error_text,
@@ -59,7 +59,7 @@ def RegisterView(page: ft.Page, db: DatabaseManager):
             db.add_default_categories(user_id)
             page.go('/login')
         else:
-            error_text.value = 'Ппользователь с таким иминем уже существует'
+            error_text.value = 'Пользователь с таким иминем уже существует'
             error_text.visible = True
             page.update()
 
@@ -69,7 +69,7 @@ def RegisterView(page: ft.Page, db: DatabaseManager):
         [
             ft.Column(
                 [
-                    ft.Text('Регистрация', size=40, width=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    ft.Text('Регистрация', size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                     username_field,
                     password_field,
                     error_text,
