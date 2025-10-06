@@ -2,6 +2,7 @@ import flet as ft
 from views.auth_views import LoginView, RegisterView
 from views.main_views import MainViews
 from database import DatabaseManager
+from views.main_views import FinanceTrackerApp
 
 def main(page:ft.Page):
     page.title='Финансовый трекер'
@@ -30,10 +31,8 @@ def main(page:ft.Page):
                  user={
                      "id": user_id,"username": page.session.get('username')
                  }
-                 page.views.append(MainViews(page, db))
-
-
-
+                 app=FinanceTrackerApp(page, user, db)
+                 page.views.append(app.build())
         page.update()
 
     page.on_route_change=route_change
