@@ -3,9 +3,11 @@ from datetime import datetime
 import mysql.connector
 import bcrypt
 
+
 class DatabaseManager:
+    # Класс для управления всемси операциями с БД
     def __init__(self, host, user, password, database):
-        self.db_config={
+        self.db_config = {
             'host': host,
             'user': user,
             'password': password,
@@ -15,74 +17,73 @@ class DatabaseManager:
 
     @contextmanager
     def _db_connection(self):
-        conn=mysql.connector.connect(**self.db_config)
-        cursor=conn.cursor(dictionary=True)
+        conn = mysql.connector.connect(**self.db_config)
+        cursor = conn.cursor(dictionary=True)
         try:
             yield cursor
             conn.commit()
         except mysql.connector.Error as e:
-            print(f'MySQL error: {e}')
+            print(f"Ошибка БД: {e}")
             conn.rollback()
         finally:
             cursor.close()
             conn.close()
 
     def _init_db(self):
-        conn=mysql.connector.connect(
+        conn = mysql.connector.connect(
             host=self.db_config['host'],
             user=self.db_config['user'],
             password=self.db_config['password'],
-
         )
         cursor = conn.cursor()
-        cursor.execute(f'CREATE DATABASE IF NOT EXISTS {self.db_config['database']};')
-        cursor.execute(f'USE {self.db_config['database']};')
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.db_config['database']}")
+        cursor.execute(f"USE {self.db_config['database']}")
 
         try:
             cursor.execute("""
-                CREATE TABLE users (
-                    id int auto_increment primary key,
-                    username varchar(255) unique not null,
-                    password_hash text not null
+                CREATE TABLE users(
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL
                 )
             """)
             cursor.execute("""
-                CREATE TABLE goals (
-                    id int auto_increment primary key,
-                    user_id int not null,
-                    name varchar(255) not null,
-                    target_amount decimal(10,2) not null,
-                    created_at datetime not null,
-                    foreign key(user_id) references users(id) on delete cascade
+                CREATE TABLE goals(
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    target_amount DECIMAL(10,2) NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
             cursor.execute("""
-                CREATE TABLE operations(
-                    id int auto_increment primary key,
-                    user_id int not null,
-                    amount real not null,
-                    type varchar(255) not null,
-                    category varchar(255) not null,
-                    description text,
-                    date datetime not null,
-                    goal_id int,
-                    receipt_path text,
-                    foreign key(user_id) references users(id) on delete cascade, 
-                    foreign key(goal_id) references goals(id) on delete set null
+                CREATE TABLE opearations(
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    amount REAL NOT NULL,
+                    type VARCHAR(100) NOT NULL,
+                    category VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    date DATETIME NOT NULL,
+                    goal_id INT,
+                    receipt_path TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE SET NULL
                 )
             """)
             cursor.execute("""
                 CREATE TABLE categories(
-                    id int auto_increment primary key,
-                    user_id int not null,
-                    name varchar(255) not null,
-                    unique(user_id, name),    
-                    foreign key(user_id) references users(id) on delete cascade               
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    UNIQUE(user_id, name),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
             conn.commit()
-        except mysql.connector.Error as e:
-            print(f'MySQL error: {e}')
+        except Exception as e:
+            print(f"Не удалось создать таблицу {e}")
         finally:
             cursor.close()
             conn.close()
@@ -92,26 +93,36 @@ class DatabaseManager:
         with self._db_connection() as cursor:
             try:
                 cursor.execute(
-                    "insert into users (username, password_hash) values (%s, %s)",
+                    "INSERT INTO users (username,password_hash) VALUES (%s,%s)",
                     (username, hashed_password.decode('utf-8'))
                 )
                 return cursor.lastrowid
-            except mysql.connector.IntegrityError as e:
-                return None
+            except mysql.connector.IntegrityError:
+                return None  # Пользователь уже существует
 
     def get_user(self, username):
         with self._db_connection() as cursor:
-            cursor.execute("select id, username, password_hash from users where username = %s", (username,))
+            cursor.execute(
+                "SELECT id, username, password_hash FROM users WHERE username=%s", (username,)
+            )
             return cursor.fetchone()
 
     def check_password(self, password, hashed):
         return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
     def add_default_categories(self, user_id):
-        default_categories = ['Продукты', 'Транспорт', 'Жилье', 'Развлечение', 'Зарплата', 'Сбережения']
+        default_categories = ['Продукты', 'Транспорт', "Жилье", "Развлечение", "Зарплата", "Сбережения"]
         with self._db_connection() as cursor:
             for category in default_categories:
                 cursor.execute(
-                    "insert ignore into categories (user_id, name) values (%s, %s)",
+                    "INSERT IGNORE INTO categories (user_id, name) VALUES (%s,%s)",
                     (user_id, category)
                 )
+
+
+
+
+
+
+
+
