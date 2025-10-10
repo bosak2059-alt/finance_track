@@ -1,4 +1,5 @@
 import flet as ft
+from unicodedata import category
 
 
 class UIFactory:
@@ -18,7 +19,7 @@ class UIFactory:
         controls['goal_target_field'] = ft.TextField(label="Требуемая сумма", keyboard_type=ft.KeyboardType.NUMBER)
         controls['goal_error_text'] = ft.TextField(color=ft.Colors.RED, visible=False)
         # Поля для вкладки цели
-        controls['receip_filename_text'] = ft.TextField(label="Чек не прикреплен", color = ft.Colors.GREY)
+        controls['receip_filename_text'] = ft.Text("Чек не прикреплен", color = ft.Colors.GREY)
         controls['attach_receip_button'] = ft.ElevatedButton(text="Прикрепить чек",icon=ft.Icons.ATTACH_FILE)
 
         controls['balance_label'] = ft.Text(value="Баланс: 0 ₽", size=20, weight=ft.FontWeight.BOLD, color='#CCFF00')
@@ -38,7 +39,7 @@ class UIFactory:
             alignment=ft.alignment.center, expand=True, visible=False
         )
         # -----Кнопки----
-        controls['theme_button']=ft.IconButton(icon=ft.Icons.DARK_MODE, icon_color="#009add")
+        controls['theme_button']=ft.IconButton(icon=ft.Icons.DARK_MODE, on_click=self.logic.toggle_theme ,icon_color="#009add")
         controls['data_filter_buttons'] = ft.SegmentedButton(
             selected={"all"},
             segments=[
@@ -49,7 +50,13 @@ class UIFactory:
             ]
         )
         controls['add_button'] = ft.ElevatedButton(
-            "Добавить",bgcolor='#009add', color='#fff'
+            "Добавить",bgcolor='#009add', color='#ffffff',
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=7),
+                padding=ft.padding.symmetric(vertical=15, horizontal=30),
+                text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700)
+            )
+
         )
 
         # Баннеры и контейнеры
@@ -90,6 +97,42 @@ class UIFactory:
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             controls['operation_list']
         ],scroll=ft.ScrollMode.AUTO)
+
+        category_content = ft.Column([
+            ft.Text("Категории", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Row([controls['category_input'],
+                    ft.ElevatedButton("Добавить категорию", style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=7),
+                        padding=ft.padding.symmetric(vertical=15, horizontal=30),
+                        text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700, letter_spacing=2)
+                    ))
+            ])
+        ], scroll=ft.ScrollMode.AUTO)
+
+        analytics_content = ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text("Ключевые показатели", size=20, weight=ft.FontWeight.BOLD),
+                        controls['analytics_period_label']
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                ft.Divider(),
+                ft.Row(
+                    [
+                        ft.Card(content=ft.Container(content=ft.Column([
+                            ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_UPWARD, color=ft.Colors.GREEN), title=ft.Text("Общий доход")),
+                            ft.Row([controls['analytics_total_income']], alignment=ft.MainAxisAlignment.END),
+                        ]), width=250, padding=10))
+                    ]
+                )
+            ]
+        )
+
         return {
-            0:income_expense_content
+            0:income_expense_content,
+            1:category_content,
+            2:analytics_content
         }

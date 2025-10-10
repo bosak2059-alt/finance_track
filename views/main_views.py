@@ -29,8 +29,33 @@ class FinanceTRackerApp:
         self._init_controls()
 
 
+    def toggle_theme(self, e):
+        if self.page.theme_mode =='dark':
+            self.page.theme_mode = 'light'
+            self .controls['theme_button'].icon=ft.Icons.DARK_MODE
+            self.controls['content_area'].bgcolor="#f5f5f5"
+        else:
+            self.page.theme_mode='dark'
+            self .controls['theme_button'].icon=ft.Icons.LIGHT_MODE
+            self.controls['content_area'].bgcolor="#1e1e1e"
+        self.page.update()
+
     def _get_controls(self, name):
         return self.controls[name]
+
+    def get_content(self, tabe_index):
+        return self.tab_contents.get(tabe_index, ft.Text("Неизвестная вкладка"))
+
+    def set_content(self, e, index):
+        self._get_controls('content_area').content=self.get_content(index)
+        self.page.update()
+
+    def divider_update(self, e:ft.DragUpdateEvent):
+        new_width=self.sidebar_size+e.delta_x
+        if self.min_sidebar_width <= new_width <= self.max_sidebar_width:
+            self._get_controls('sidebar_container').width=new_width
+            self.sidebar_size=new_width
+            self._get_controls('sidebar_container').update()
 
     def _init_controls(self):
         ui_factory = UIFactory(self)
@@ -45,13 +70,16 @@ class FinanceTRackerApp:
         username_text = ft.Text(f"Пользователь: {self.user['username']}", weight=ft.FontWeight.BOLD)
         sidebar_content = ft.Column([
             ft.ListTile(
-                title=ft.Text("Учет доходов и расходов"), leading=ft.Icon(ft.Icons.ATTACH_MONEY)
+                title=ft.Text("Учет доходов и расходов"), leading=ft.Icon(ft.Icons.ATTACH_MONEY),
+                on_click=lambda  e:self.set_content(e, 0)
             ),
             ft.ListTile(
-                title=ft.Text("Аналитика категорий"), leading=ft.Icon(ft.Icons.PIE_CHART_OUTLINE)
+                title=ft.Text("Категории"), leading=ft.Icon(ft.Icons.PIE_CHART_OUTLINE),
+                on_click=lambda e: self.set_content(e, 1)
             ),
             ft.ListTile(
-                title=ft.Text("Графики"), leading=ft.Icon(ft.Icons.INSERT_CHART)
+                title=ft.Text("Аналитика доходов и расходов"), leading=ft.Icon(ft.Icons.INSERT_CHART),
+                on_click = lambda e: self.set_content(e, 2)
             ),
             ft.ListTile(
                 title=ft.Text("Цели и накопления"), leading=ft.Icon(ft.Icons.SAVINGS)
@@ -63,7 +91,7 @@ class FinanceTRackerApp:
             )
         ])
 
-        self.sidebar_container = ft.Container(
+        sidebar_container = ft.Container(
             content=ft.Column([
                 ft.Row([username_text],alignment= ft.MainAxisAlignment.CENTER),
                 ft.Divider(),
@@ -71,16 +99,18 @@ class FinanceTRackerApp:
             ]),
             width=self.sidebar_size, bgcolor='#001a33', padding=10
         )
+        self.controls['sidebar_container'] = sidebar_container
 
         sidebar_wrapper = ft.Container(
-            content=ft.Column([self.sidebar_container],alignment=ft.MainAxisAlignment.CENTER),
+            content=ft.Column([sidebar_container],alignment=ft.MainAxisAlignment.CENTER),
             expand=False
         )
 
         divider = ft.GestureDetector(
             mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
             drag_interval=10,
-            content=ft.VerticalDivider(width=2.5, color=ft.Colors.LIME_700)
+            content=ft.VerticalDivider(width=2.5, color=ft.Colors.LIME_700),
+            on_horizontal_drag_update=self.divider_update
         )
 
         layout = ft.Row([
