@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 import mysql.connector
 import bcrypt
 
@@ -121,8 +121,41 @@ class DatabaseManager:
 
 
 
+    # ===   Методы работы с данными   ===
+
+    def get_date_filter(self, period):
+        if period == "today":
+            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            return "WHERE date >= %s", (start_date,)
+        elif period == "week":
+            start_date = (datetime.now()-timedelta(days=datetime.now().weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            return "WHERE date >= %s", (start_date,)
+        elif period == "month":
+            start_date = datetime.now().replace(day=1, minute=0, second=0, microsecond=0)
+            return "WHERE date >= %s", (start_date,)
+        return "", ()
 
 
 
 
+    def add_opearation(self, user_id, amount, type_, category, description, goal_id=None, receipt_path=None):
+        with self._db_connection() as cursor:
+            cursor.execute("""
+                INSERT INTO opearations (user_id, amount, type, category, description, date, goal_id, receipt_path)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (user_id, amount, type_, category, description,  datetime.now(), goal_id, receipt_path))
+
+    def update_opearation(self, user_id,opearation_id ,amount, type_, category, description, receipt_path=None):
+        with self._db_connection() as cursor:
+            cursor.execute("""
+                UPDATE opearations
+                SET amount = %s, type=%s, category=%s, description=%s, receipt_path=%s,
+                WHERE id = %s AND user_id = %s
+            """, (user_id,opearation_id ,amount, type_, category, description, receipt_path))
+
+    def delete_opearations(self, user_id,opearation_id):
+        with self._db_connection() as cursor:
+            cursor.execute("""
+                DELETE FROM opearations where id = %s AND user_id = %s
+            """, (opearation_id, user_id))
 

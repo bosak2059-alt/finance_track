@@ -32,6 +32,7 @@ class UIFactory:
         controls['analytics_total_income'] = ft.Text("0.00 ₽", size=24, weight=ft.FontWeight.BOLD)
         controls['analytics_total_expense'] = ft.Text("0.00 ₽", size=24, weight=ft.FontWeight.BOLD)
         controls['analytics_savings_rate'] = ft.Text("0.0%", size=24, weight=ft.FontWeight.BOLD)
+        controls['analytics_avg_daily_expense'] = ft.Text("0.00 ₽", size=24, weight=ft.FontWeight.BOLD)
 
         controls['pie_chart'] = ft.PieChart(sections=[], center_space_radius=40, expand=True)
         controls['chart_placeholder'] = ft.Container(
@@ -39,7 +40,7 @@ class UIFactory:
             alignment=ft.alignment.center, expand=True, visible=False
         )
         # -----Кнопки----
-        controls['theme_button']=ft.IconButton(icon=ft.Icons.DARK_MODE, on_click=self.logic.toggle_theme ,icon_color="#009add")
+        controls['theme_button']=ft.IconButton(icon=ft.Icons.DARK_MODE, on_click=self.logic.toggle_theme, icon_color="#009add")
         controls['data_filter_buttons'] = ft.SegmentedButton(
             selected={"all"},
             segments=[
@@ -56,7 +57,6 @@ class UIFactory:
                 padding=ft.padding.symmetric(vertical=15, horizontal=30),
                 text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700)
             )
-
         )
 
         # Баннеры и контейнеры
@@ -102,11 +102,11 @@ class UIFactory:
             ft.Text("Категории", size=20, weight=ft.FontWeight.BOLD),
             ft.Divider(),
             ft.Row([controls['category_input'],
-                    ft.ElevatedButton("Добавить категорию", style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=7),
-                        padding=ft.padding.symmetric(vertical=15, horizontal=30),
-                        text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700, letter_spacing=2)
-                    ))
+                ft.ElevatedButton("Добавить категорию",style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=7),
+                padding=ft.padding.symmetric(vertical=15, horizontal=30),
+                text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700, letter_spacing=2)
+                ))
             ])
         ], scroll=ft.ScrollMode.AUTO)
 
@@ -117,22 +117,61 @@ class UIFactory:
                         ft.Text("Ключевые показатели", size=20, weight=ft.FontWeight.BOLD),
                         controls['analytics_period_label']
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
                 ft.Divider(),
                 ft.Row(
                     [
                         ft.Card(content=ft.Container(content=ft.Column([
                             ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_UPWARD, color=ft.Colors.GREEN), title=ft.Text("Общий доход")),
-                            ft.Row([controls['analytics_total_income']], alignment=ft.MainAxisAlignment.END),
-                        ]), width=250, padding=10))
-                    ]
+                            ft.Row([controls['analytics_total_income']], alignment=ft.MainAxisAlignment.END)
+                        ]), width=250, padding=10)),
+                        ft.Card(content=ft.Container(content=ft.Column([
+                            ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_DOWNWARD, color=ft.Colors.RED), title=ft.Text("Общий расход")),
+                            ft.Row([controls['analytics_total_expense']], alignment=ft.MainAxisAlignment.END)
+                        ]), width=250, padding=10)),
+                    ],
+                    spacing=20, alignment= ft.MainAxisAlignment.CENTER
+                ),
+                ft.Row(
+                    [
+                        ft.Card(content=ft.Container(content=ft.Column([
+                            ft.ListTile(leading=ft.Icon(ft.Icons.SAVINGS_OUTLINED, color=ft.Colors.BLUE), title=ft.Text("Коэффициент сбережений")),
+                            ft.Row([controls['analytics_savings_rate']], alignment=ft.MainAxisAlignment.END)
+                        ]), width=250, padding=10)),
+                        ft.Card(content=ft.Container(content=ft.Column([
+                            ft.ListTile(leading=ft.Icon(ft.Icons.CALCULATE_OUTLINED, color=ft.Colors.ORANGE), title=ft.Text("Средний расход в день")),
+                            ft.Row([controls['analytics_avg_daily_expense']], alignment=ft.MainAxisAlignment.END)
+                        ]), width=250, padding=10)),
+                    ],
+                    spacing=20, alignment= ft.MainAxisAlignment.CENTER
+                ),
+                ft.Divider(),
+                ft.Text("Распределение расходов", size=20, weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    content=ft.Stack([controls['pie_chart'], controls['chart_placeholder']]),
+                    height=250
                 )
-            ]
+            ],
+            scroll=ft.ScrollMode.AUTO
         )
+
+        goals_content = ft.Column([
+            ft.Text("Мои финансовые цели", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Card(content=ft.Container(padding=15, content=ft.Column([
+                ft.Text("Создать новую цель", size=16, weight=ft.FontWeight.BOLD),
+                controls['goal_name_field'],
+                controls['goal_target_field'],
+                controls['goal_error_text'],
+                ft.Row([ft.ElevatedButton("Создать")], alignment=ft.MainAxisAlignment.END)
+            ]))),
+            ft.Divider(height=20), controls['goal_list']
+        ], scroll=ft.ScrollMode.AUTO)
 
         return {
             0:income_expense_content,
-            1:category_content,
-            2:analytics_content
+            1: category_content,
+            2: analytics_content,
+            3: goals_content
         }
