@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from tkinter.constants import INSERT
+
 import mysql.connector
 import bcrypt
 
@@ -159,3 +161,18 @@ class DatabaseManager:
                 DELETE FROM opearations where id = %s AND user_id = %s
             """, (opearation_id, user_id))
 
+    def add_category(self, user_id, name):
+        with self._db_connection() as cursor:
+            try:
+                cursor.execute("INSERT INTO categories (user_id, name) VALUES (%s, %s)", (user_id, name))
+            except mysql.connector.IntegrityError:
+                print(f"Категория {name} уже существует.")
+
+    def delete_category(self, user_id, name):
+        with self._db_connection() as cursor:
+            cursor.execute("Delete from categories where user_id=%s and name = %s", (user_id,name))
+
+    def get_all_category(self, user_id):
+        with self._db_connection() as cursor:
+            cursor.execute("SELECT name FROM categories WHERE user_id=%s", (user_id,))
+            return [row['name'] for row in cursor.fetchall()]

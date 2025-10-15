@@ -85,6 +85,19 @@ class FinanceTRackerApp:
             self.page.update()
             return
 
+        self.db.add_opearation(self.user_id, amount, type_value, category_value, description_value, receipt_path=self.selected_receipt_path)
+        self.controls['amount_field'].value = ""
+        self.controls['category_field'].value = ""
+        self.controls['description_field'].value = ""
+        self._get_controls('error_banner').visible = False
+        self.page.update()
+
+    def add_new_category(self, e):
+        name=self._get_controls('category_input').value.strip()
+        if not name:
+            return
+
+
     def _init_controls(self):
         ui_factory = UIFactory(self)
         self.controls = ui_factory.create_all_controls()

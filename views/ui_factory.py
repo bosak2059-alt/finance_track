@@ -52,6 +52,7 @@ class UIFactory:
         )
         controls['add_button'] = ft.ElevatedButton(
             "Добавить",bgcolor='#009add', color='#ffffff',
+            on_click=self.logic.add_operation_value,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=7),
                 padding=ft.padding.symmetric(vertical=15, horizontal=30),
