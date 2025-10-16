@@ -96,6 +96,10 @@ class FinanceTRackerApp:
         name=self._get_controls('category_input').value.strip()
         if not name:
             return
+        self.db.add_category(self.user_id, name)
+        self._get_controls('category_input').value=""
+        self.page.update()
+
 
 
     def _init_controls(self):

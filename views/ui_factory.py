@@ -103,7 +103,7 @@ class UIFactory:
             ft.Text("Категории", size=20, weight=ft.FontWeight.BOLD),
             ft.Divider(),
             ft.Row([controls['category_input'],
-                ft.ElevatedButton("Добавить категорию",style=ft.ButtonStyle(
+                ft.ElevatedButton("Добавить категорию",on_click=self.logic.add_new_category,style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=7),
                 padding=ft.padding.symmetric(vertical=15, horizontal=30),
                 text_style=ft.TextStyle(size=20, weight=ft.FontWeight.W_700, letter_spacing=2)

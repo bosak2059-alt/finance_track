@@ -4,6 +4,7 @@ from tkinter.constants import INSERT
 
 import mysql.connector
 import bcrypt
+from certifi import where
 
 
 class DatabaseManager:
@@ -161,6 +162,20 @@ class DatabaseManager:
                 DELETE FROM opearations where id = %s AND user_id = %s
             """, (opearation_id, user_id))
 
+    def get_all_operations(self, user_id, period='all'):
+        with self._db_connection() as cursor:
+            where_clause, params=self._get_date_filter(period)
+            if where_clause:
+                final_where=f"{where_clause} AND user_id=%s"
+                final_params=(user_id,)
+            else:
+                final_where="WHERE user_id=%s"
+                final_params=(user_id,)
+            query = f"SELECT id, amount, type, category, description, date, goal_id, receipt_path from opearations WHERE {final_where} ORDER BY date DESC"
+            cursor.execute(query, final_params)
+            return cursor.fetchall()
+
+
     def add_category(self, user_id, name):
         with self._db_connection() as cursor:
             try:
@@ -176,3 +191,25 @@ class DatabaseManager:
         with self._db_connection() as cursor:
             cursor.execute("SELECT name FROM categories WHERE user_id=%s", (user_id,))
             return [row['name'] for row in cursor.fetchall()]
+
+    def get_balance(self, user_id, period='all'):
+        with self._db_connection() as cursor:
+            data_clause, date_params=self.get_date_filter(period)
+            conditions=['user_id=%s']
+            params=[user_id]
+
+            if data_clause:
+                conditions.append(data_clause.replace("WHERE", ""))
+                params.extend(date_params)
+
+            where_clause="and".join(conditions)
+            query="""
+                SELECT
+                    coalesce(sum(case when type='Доход' then amount else 0 end ), 0)as income
+                    coalesce(sum(case when type='Расход' then amount else 0 end ), 0)as expense
+                from opearations
+                WHERE"""+where_clause
+
+            cursor.execute(query, tuple(params))
+            result = cursor.fetchall()
+            return (result['income']-result['expense']) if result else 0
