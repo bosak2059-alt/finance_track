@@ -1,10 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from tkinter.constants import INSERT
-
 import mysql.connector
 import bcrypt
-from certifi import where
 
 
 class DatabaseManager:
@@ -122,59 +119,54 @@ class DatabaseManager:
                     (user_id, category)
                 )
 
+    # === Методы работы с данными ===
 
-
-    # ===   Методы работы с данными   ===
-
-    def get_date_filter(self, period):
-        if period == "today":
+    def _get_date_filter(self, period):
+        if period == 'today':
             start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             return "WHERE date >= %s", (start_date,)
-        elif period == "week":
-            start_date = (datetime.now()-timedelta(days=datetime.now().weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        elif period == 'week':
+            start_date = (datetime.now() - timedelta(days=datetime.now().weekday())).replace(hour=0, minute=0, second=0,
+                                                                                             microsecond=0)
             return "WHERE date >= %s", (start_date,)
-        elif period == "month":
-            start_date = datetime.now().replace(day=1, minute=0, second=0, microsecond=0)
+        elif period == 'month':
+            start_date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             return "WHERE date >= %s", (start_date,)
         return "", ()
 
-
-
-
-    def add_opearation(self, user_id, amount, type_, category, description, goal_id=None, receipt_path=None):
+    def add_operation(self, user_id, amount, type_, category, description, goal_id=None, receipt_path=None):
         with self._db_connection() as cursor:
             cursor.execute("""
                 INSERT INTO opearations (user_id, amount, type, category, description, date, goal_id, receipt_path)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (user_id, amount, type_, category, description,  datetime.now(), goal_id, receipt_path))
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (user_id, amount, type_, category, description, datetime.now(), goal_id, receipt_path))
 
-    def update_opearation(self, user_id,opearation_id ,amount, type_, category, description, receipt_path=None):
+    def update_operation(self, user_id, operation_id, amount, type_, category, description, receipt_path):
         with self._db_connection() as cursor:
             cursor.execute("""
                 UPDATE opearations
-                SET amount = %s, type=%s, category=%s, description=%s, receipt_path=%s,
+                SET amount=%s, type=%s, category=%s, description=%s,receipt_path=%s
                 WHERE id = %s AND user_id = %s
-            """, (user_id,opearation_id ,amount, type_, category, description, receipt_path))
+            """, (user_id, operation_id, amount, type_, category, description, receipt_path))
 
-    def delete_opearations(self, user_id,opearation_id):
+    def delete_operation(self, user_id, operation_id):
         with self._db_connection() as cursor:
             cursor.execute("""
-                DELETE FROM opearations where id = %s AND user_id = %s
-            """, (opearation_id, user_id))
+                DELETE FROM opearations WHERE id = %s AND user_id = %s
+            """, (operation_id, user_id))
 
     def get_all_operations(self, user_id, period='all'):
         with self._db_connection() as cursor:
-            where_clause, params=self._get_date_filter(period)
+            where_clause, params = self._get_date_filter(period)
             if where_clause:
-                final_where=f"{where_clause} AND user_id=%s"
-                final_params=(user_id,)
+                final_where = f"{where_clause} AND user_id = %s"
+                finals_params = (user_id,)
             else:
-                final_where="WHERE user_id=%s"
-                final_params=(user_id,)
-            query = f"SELECT id, amount, type, category, description, date, goal_id, receipt_path from opearations WHERE {final_where} ORDER BY date DESC"
-            cursor.execute(query, final_params)
+                final_where = " WHERE user_id = %s"
+                finals_params = (user_id,)
+            query = f"SELECT id, amount, type, category, description, date, goal_id, receipt_path FROM opearations {final_where} ORDER BY date DESC"
+            cursor.execute(query, finals_params)
             return cursor.fetchall()
-
 
     def add_category(self, user_id, name):
         with self._db_connection() as cursor:
@@ -185,7 +177,7 @@ class DatabaseManager:
 
     def delete_category(self, user_id, name):
         with self._db_connection() as cursor:
-            cursor.execute("Delete from categories where user_id=%s and name = %s", (user_id,name))
+            cursor.execute("DELETE FROM categories WHERE user_id=%s AND name=%s", (user_id, name))
 
     def get_all_category(self, user_id):
         with self._db_connection() as cursor:
@@ -194,22 +186,45 @@ class DatabaseManager:
 
     def get_balance(self, user_id, period='all'):
         with self._db_connection() as cursor:
-            data_clause, date_params=self.get_date_filter(period)
-            conditions=['user_id=%s']
-            params=[user_id]
+            where_clause, date_params = self._get_date_filter(period)
+            conditions = []
+            params = [user_id]
 
-            if data_clause:
-                conditions.append(data_clause.replace("WHERE", ""))
+            if where_clause.strip():
+                conditions.append(where_clause.replace("WHERE", "").strip())
                 params.extend(date_params)
 
-            where_clause="and".join(conditions)
-            query="""
-                SELECT
-                    coalesce(sum(case when type='Доход' then amount else 0 end ), 0)as income
-                    coalesce(sum(case when type='Расход' then amount else 0 end ), 0)as expense
-                from opearations
-                WHERE"""+where_clause
+            conditions.append("user_id = %s")
+            conditions.append("type = %s")
+            where_final = "WHERE " + " AND ".join(conditions) if conditions else ""
 
-            cursor.execute(query, tuple(params))
-            result = cursor.fetchall()
-            return (result['income']-result['expense']) if result else 0
+            query_income = f"SELECT COALESCE(SUM(amount), 0) as total FROM opearations {where_final}"
+            params_income = params + ['Доход']
+            cursor.execute(query_income, tuple(params_income))
+            income = cursor.fetchone()['total'] or 0
+
+            # Запрос для расходов
+            query_expense = f"SELECT COALESCE(SUM(amount), 0) as total FROM opearations {where_final}"
+            params_expense = params + ['Расход']
+
+            cursor.execute(query_expense, tuple(params_expense))
+            expense = cursor.fetchone()['total'] or 0
+
+            return income - expense
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

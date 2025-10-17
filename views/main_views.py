@@ -90,7 +90,10 @@ class FinanceTRackerApp:
         self.controls['category_field'].value = ""
         self.controls['description_field'].value = ""
         self._get_controls('error_banner').visible = False
-        self.page.update()
+        self.reload_data_update_ui()
+        self._get_controls('receip_filename_text').visible = False
+
+
 
     def add_new_category(self, e):
         name=self._get_controls('category_input').value.strip()
@@ -100,7 +103,28 @@ class FinanceTRackerApp:
         self._get_controls('category_input').value=""
         self.page.update()
 
+    def update_balance(self):
+        balance = self.db.get_balance(self.user_id, period=self.current_filter)
+        balance = balance if balance is not None else 0
+        print(balance)
+        color = ft.Colors.GREEN_400 if balance >= 0 else ft.Colors.RED_ACCENT_400
+        self._get_controls('balance_label').value = f"Баланс: {balance:.2f} ₽"
+        self._get_controls('balance_label').color = color
 
+    def update_operations_list(self):
+        self._get_controls('operations_list').controls.clear()
+        for operate in self.operations:
+            color="green" if operate['type'] == "Доход" else "red"
+            sign="+" if operate['type'] == "Доход" else "-"
+            text=f"{operate['type']} | {sign}{abs(operate['amount'])} ₽ | {operate['category']}"
+            if operate['description']:
+                text+=f" - {operate['description']}"
+            text+=f" ( {operate['date']} )"
+
+    def reload_data_update_ui(self):
+        self.update_balance()
+        self.db.get_all_category(self.user_id)
+        self.page.update()
 
     def _init_controls(self):
         ui_factory = UIFactory(self)
