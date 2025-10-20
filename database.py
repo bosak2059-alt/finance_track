@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 import mysql.connector
 import bcrypt
+from certifi import where
 
 
 class DatabaseManager:
@@ -212,19 +213,22 @@ class DatabaseManager:
 
             return income - expense
 
+    def get_finance_sum(self, user_id, period='all', expense=None):
+        conditions = ['user_id = %s']
+        params_list = [user_id]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        data_clause, data_params = self._get_date_filter(period)
+        if data_clause:
+            conditions.append(data_clause.replace("WHERE ", ""))
+            params_list.extend(data_params)
+        where_sql="WHERE " + " AND ".join(conditions) if conditions else ""
+        query=f"""
+            SELECT COALESCE(SUM(CASE WHEN TYPE='Доход' THEN amount ELSE 0 END), 0),
+            SELECT COALESCE(SUM(CASE WHEN TYPE='Расход' THEN amount ELSE 0 END), 0)
+            FROM opearations {where_sql}
+        """
+        with self._db_connection() as cursor:
+            result = cursor.execute(query, tuple(params_list)).fetchone()
+        income = result[0] if result else 0
+        income = result[1] if result else 0
+        return {"income": income, "expense":expense}

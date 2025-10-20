@@ -33,6 +33,7 @@ class FinanceTRackerApp:
         self.selected_receipt_path = None
         self.file_picker_context = 'add'  # or edit
         self._init_controls()
+        self.controls()
 
     def toggle_theme(self, e):
         if self.page.theme_mode == 'dark':
@@ -85,7 +86,7 @@ class FinanceTRackerApp:
             self.page.update()
             return
 
-        self.db.add_opearation(self.user_id, amount, type_value, category_value, description_value, receipt_path=self.selected_receipt_path)
+        self.db.add_operation(self.user_id, amount, type_value, category_value, description_value, receipt_path=self.selected_receipt_path)
         self.controls['amount_field'].value = ""
         self.controls['category_field'].value = ""
         self.controls['description_field'].value = ""
@@ -93,7 +94,9 @@ class FinanceTRackerApp:
         self.reload_data_update_ui()
         self._get_controls('receip_filename_text').visible = False
 
-
+    def delete_operation_value(self, e, operation_id):
+        self.db.delete_operation(self.user_id, operation_id=e.operation_id)
+        self.reload_data_update_ui()
 
     def add_new_category(self, e):
         name=self._get_controls('category_input').value.strip()
@@ -121,15 +124,53 @@ class FinanceTRackerApp:
                 text+=f" - {operate['description']}"
             text+=f" ( {operate['date']} )"
 
+            edit_btn=ft.IconButton(
+                icon=ft.Icons.EDIT,
+                icon_color='blue',
+                tooltip='Редоктировать запись'
+            )
+            delete_btn=ft.IconButton(
+                icon=ft.Icons.DELETE,
+                icon_color='red',
+                tooltip='Удалить запись',
+                on_click=lambda e, op_id=operate['id']: self.delete_operation_value(e, op_id)
+            )
+            row=ft.Row([
+                ft.ListTile(title=ft.Text(text, color=color), expand=True),
+                edit_btn, delete_btn
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER)
+            self._get_controls('operations_list').controls.append(row)
+        self._get_controls('operations_list').update()
+
     def reload_data_update_ui(self):
+        self.operations = self.db.get_all_operations(self.user_id, period=self.current_filter)
         self.update_balance()
+        self.update_operations_list()
         self.db.get_all_category(self.user_id)
         self.page.update()
+
+    def update_analytics_tab(self):
+        summary=self.db.get_finance_sum(self.user_id, period=self.current_filter)
+        income=summary.get('income',0)
+        expense=summary.get('expense',0)
+        self._get_controls('analytics_total_income').visible = f"{income} ₽"
+        self._get_controls('analytics_total_expense').visible = f"{expense} ₽"
+        savings_rate=((income-expense)/income*100) if income > 0 else 0
+        self._get_controls('analytics_savings_rate').visible = f"{savings_rate}%"
+        if savings_rate<0:
+            self._get_controls('analytics_savings_rate').color = ft.Colors.RED_ACCENT
+        elif savings_rate<10:
+            self._get_controls('analytics_savings_rate').color = ft.Colors.ORANGE_ACCENT
+        else:
+            self._get_controls('analytics_savings_rate').color = ft.Colors.GREEN_ACCENT
+
+        #self._get_controls("analytics_avg_daily_expense").value=f""
 
     def _init_controls(self):
         ui_factory = UIFactory(self)
         self.controls = ui_factory.create_all_controls()
         self.tab_contents = ui_factory.create_tab_content(self.controls)
+        self._get_controls('content_area').content = self.tab_contents(0)
 
     def build(self):
         # Собирает и возвращает корневой UI
