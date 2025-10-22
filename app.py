@@ -13,7 +13,7 @@ def main(page: ft.Page):
     db = DatabaseManager(
         host='localhost',
         user='root',
-        password='1234',
+        password='12345',
         database='flet_projects'
     )
 
@@ -32,6 +32,7 @@ def main(page: ft.Page):
                 user = {"id": user_id, "username": page.session.get("username")}
                 app = FinanceTRackerApp(page, user, db)
                 page.views.append(app.build())
+                app.reload_data_update_ui()
         page.update()
 
     page.on_route_change = route_change

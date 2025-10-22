@@ -2,11 +2,10 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 import mysql.connector
 import bcrypt
-from certifi import where
 
 
 class DatabaseManager:
-    # Класс для управления всемси операциями с БД
+    # Класс для управления всеми операциями с БД
     def __init__(self, host, user, password, database):
         self.db_config = {
             'host': host,
@@ -125,14 +124,14 @@ class DatabaseManager:
     def _get_date_filter(self, period):
         if period == 'today':
             start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            return "WHERE date >= %s", (start_date,)
+            return "date >= %s", (start_date,)
         elif period == 'week':
             start_date = (datetime.now() - timedelta(days=datetime.now().weekday())).replace(hour=0, minute=0, second=0,
                                                                                              microsecond=0)
-            return "WHERE date >= %s", (start_date,)
+            return "date >= %s", (start_date,)
         elif period == 'month':
             start_date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            return "WHERE date >= %s", (start_date,)
+            return "date >= %s", (start_date,)
         return "", ()
 
     def add_operation(self, user_id, amount, type_, category, description, goal_id=None, receipt_path=None):
@@ -160,13 +159,14 @@ class DatabaseManager:
         with self._db_connection() as cursor:
             where_clause, params = self._get_date_filter(period)
             if where_clause:
-                final_where = f"{where_clause} AND user_id = %s"
-                finals_params = (user_id,)
+                final_where = f"WHERE {where_clause} AND user_id = %s"
+                final_params = params + (user_id,)
             else:
-                final_where = " WHERE user_id = %s"
-                finals_params = (user_id,)
+                final_where = "WHERE user_id = %s"
+                final_params = (user_id,)
+
             query = f"SELECT id, amount, type, category, description, date, goal_id, receipt_path FROM opearations {final_where} ORDER BY date DESC"
-            cursor.execute(query, finals_params)
+            cursor.execute(query, final_params)
             return cursor.fetchall()
 
     def add_category(self, user_id, name):
@@ -207,28 +207,44 @@ class DatabaseManager:
             # Запрос для расходов
             query_expense = f"SELECT COALESCE(SUM(amount), 0) as total FROM opearations {where_final}"
             params_expense = params + ['Расход']
-
             cursor.execute(query_expense, tuple(params_expense))
             expense = cursor.fetchone()['total'] or 0
 
             return income - expense
 
-    def get_finance_sum(self, user_id, period='all', expense=None):
-        conditions = ['user_id = %s']
+    def get_finance_sum(self, user_id, period='all'):
+        conditions = ['user_id=%s']
         params_list = [user_id]
 
         data_clause, data_params = self._get_date_filter(period)
         if data_clause:
-            conditions.append(data_clause.replace("WHERE ", ""))
+            conditions.append(data_clause)
             params_list.extend(data_params)
-        where_sql="WHERE " + " AND ".join(conditions) if conditions else ""
-        query=f"""
-            SELECT COALESCE(SUM(CASE WHEN TYPE='Доход' THEN amount ELSE 0 END), 0),
-            SELECT COALESCE(SUM(CASE WHEN TYPE='Расход' THEN amount ELSE 0 END), 0)
+        where_sql = "WHERE " + " AND ".join(conditions)
+
+        query = f"""
+            SELECT
+                COALESCE(SUM(CASE WHEN type = 'Доход' THEN amount ELSE 0 END), 0) as income,
+                COALESCE(SUM(CASE WHEN type = 'Расход' THEN amount ELSE 0 END), 0) as expense
             FROM opearations {where_sql}
         """
         with self._db_connection() as cursor:
-            result = cursor.execute(query, tuple(params_list)).fetchone()
-        income = result[0] if result else 0
-        income = result[1] if result else 0
-        return {"income": income, "expense":expense}
+            cursor.execute(query, tuple(params_list))
+            result = cursor.fetchone()
+
+        income = result['income'] if result else 0
+        expense = result['expense'] if result else 0
+        return {"income": income, "expense": expense}
+
+
+
+
+
+
+
+
+
+
+
+
+
