@@ -11,10 +11,10 @@ def main(page: ft.Page):
     page.window_height = 800
 
     db = DatabaseManager(
-        host='localhost',
+        host='finance_app',
         user='root',
-        password='12345',
-        database='flet_projects'
+        password='1234',
+        database='sargis'
     )
 
     def route_change(route):
